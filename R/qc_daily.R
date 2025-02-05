@@ -9,6 +9,7 @@
 #' @param price_threshold Numeric. Minimum allowed price for open, high, low, and close columns. Default is 1e-8.
 #' @param market_symbol Character. Symbol representing the market index (e.g., "spy").
 #'  Default is NULL, which means you don't want to use add market data.
+#' @param add_dv_rank Logical. Whether to add a rank by dollar volume for every date. Default is TRUE.
 #'
 #' @return A cleaned and processed data.table with price and return information.
 #' @import data.table
@@ -20,14 +21,15 @@ qc_daily = function(file_path,
                     symbols = NULL,
                     min_obs = 253,
                     price_threshold = 1e-8,
-                    market_symbol = NULL) {
+                    market_symbol = NULL,
+                    add_dv_rank = TRUE) {
 
   # Debug
   # file_path = "F:/lean/data/stocks_daily.csv"
   # symbols = c("spy", "aapl", "msft")
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
-    returns = N = `.` = NULL
+    returns = N = `.` = dollar_vol_rank = close_raw = NULL
 
   # Validate inputs using checkmate
   assert_file_exists(file_path, access = "r")
@@ -45,6 +47,8 @@ qc_daily = function(file_path,
   # Filter symbols
   if (!is.null(symbols)) {
     prices = prices[.(symbols), nomatch = NULL]
+    setkey(prices, "symbol")
+    setorder(prices, symbol, date)
   }
 
   # Remove duplicates
@@ -99,6 +103,11 @@ qc_daily = function(file_path,
   remove_symbols = prices[, .N, by = symbol][N < min_obs, symbol]
   if (length(remove_symbols) > 0) {
     prices = prices[!.(remove_symbols)]
+  }
+
+  # Create rank by volume for every date
+  if (add_dv_rank == TRUE) {
+    prices[, dollar_vol_rank := frankv(close_raw * volume, order = -1L), by = date]
   }
 
   return(prices)

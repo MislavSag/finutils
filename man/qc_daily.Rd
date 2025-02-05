@@ -9,7 +9,8 @@ qc_daily(
   symbols = NULL,
   min_obs = 253,
   price_threshold = 1e-08,
-  market_symbol = NULL
+  market_symbol = NULL,
+  add_dv_rank = TRUE
 )
 }
 \arguments{
@@ -23,6 +24,8 @@ qc_daily(
 
 \item{market_symbol}{Character. Symbol representing the market index (e.g., "spy").
 Default is NULL, which means you don't want to use add market data.}
+
+\item{add_dv_rank}{Logical. Whether to add a rank by dollar volume for every date. Default is TRUE.}
 }
 \value{
 A cleaned and processed data.table with price and return information.
