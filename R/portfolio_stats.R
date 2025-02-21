@@ -53,6 +53,9 @@ portfolio_stats = function(returns,
     })
     beta = t(as.matrix(unlist(beta)))
     rownames(beta) = "Beta"
+  } else {
+    beta = matrix(NA, nrow = 1, ncol = ncol(returns))
+    rownames(beta) = "Beta"
   }
   # PerformanceAnalytics::MartinRatio(returns)
 
