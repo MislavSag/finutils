@@ -14,12 +14,11 @@
 #' @importFrom data.table .N
 #' @import checkmate
 #' @export
-
 portfolio_stats = function(returns,
                            market = NULL) {
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
-    returns = N = `.` = dollar_vol_rank = close_raw = NULL
+     N = `.` = dollar_vol_rank = close_raw = NULL
 
   # Debug
   # library(PerformanceAnalytics)
