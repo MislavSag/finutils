@@ -13,6 +13,7 @@
 #' @importFrom stats na.omit
 #' @importFrom data.table .N
 #' @import checkmate
+#' @import PerformanceAnalytics
 #' @export
 portfolio_stats = function(returns,
                            market = NULL) {

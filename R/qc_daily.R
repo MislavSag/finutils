@@ -10,26 +10,29 @@
 #' @param market_symbol Character. Symbol representing the market index (e.g., "spy").
 #'  Default is NULL, which means you don't want to use add market data.
 #' @param add_dv_rank Logical. Whether to add a rank by dollar volume for every date. Default is TRUE.
+#' @param add_day_of_month Logical. Whether to add a day of month column. Default is FALSE.
 #'
 #' @return A cleaned and processed data.table with price and return information.
 #' @import data.table
 #' @importFrom stats na.omit
 #' @importFrom data.table .N
 #' @import checkmate
+#' @import xts
 #' @export
 qc_daily = function(file_path,
                     symbols = NULL,
                     min_obs = 253,
                     price_threshold = 1e-8,
                     market_symbol = NULL,
-                    add_dv_rank = TRUE) {
+                    add_dv_rank = TRUE,
+                    add_day_of_month = FALSE) {
 
   # Debug
   # file_path = "F:/lean/data/stocks_daily.csv"
   # symbols = c("spy", "aapl", "msft")
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
-    returns = N = `.` = dollar_vol_rank = close_raw = NULL
+    returns = N = `.` = dollar_vol_rank = close_raw = day_of_month = NULL
 
   # Validate inputs using checkmate
   assert_file_exists(file_path, access = "r")
@@ -108,6 +111,18 @@ qc_daily = function(file_path,
   # Create rank by volume for every date
   if (add_dv_rank == TRUE) {
     prices[, dollar_vol_rank := frankv(close_raw * volume, order = -1L), by = date]
+  }
+
+  # Add day of month column
+  if (add_day_of_month == TRUE) {
+    setorder(prices, symbol, date)
+    month_date = unique(prices[, .(month, date)])
+    setorder(month_date, date)
+    month_date[, day_of_month := 1:.N, by = .(month)]
+    prices = month_date[, .(date, day_of_month)][prices, on = c("date")]
+    prices[, day_of_month := as.factor(day_of_month)]
+    prices[day_of_month == 23, day_of_month := 22] # 23 day to 22 day
+    prices[day_of_month == 22, day_of_month := 21] # not sure about this but lets fo with it
   }
 
   return(prices)

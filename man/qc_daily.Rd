@@ -10,7 +10,8 @@ qc_daily(
   min_obs = 253,
   price_threshold = 1e-08,
   market_symbol = NULL,
-  add_dv_rank = TRUE
+  add_dv_rank = TRUE,
+  add_day_of_month = FALSE
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ qc_daily(
 Default is NULL, which means you don't want to use add market data.}
 
 \item{add_dv_rank}{Logical. Whether to add a rank by dollar volume for every date. Default is TRUE.}
+
+\item{add_day_of_month}{Logical. Whether to add a day of month column. Default is FALSE.}
 }
 \value{
 A cleaned and processed data.table with price and return information.

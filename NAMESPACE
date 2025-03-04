@@ -2,6 +2,7 @@
 
 export(portfolio_stats)
 export(qc_daily)
+import(PerformanceAnalytics)
 import(checkmate)
 import(data.table)
 import(xts)
