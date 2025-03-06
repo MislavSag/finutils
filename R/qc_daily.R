@@ -17,7 +17,7 @@
 #' @importFrom stats na.omit
 #' @importFrom data.table .N
 #' @import checkmate
-#' @import xts
+#' @importFrom xts as.xts
 #' @export
 qc_daily = function(file_path,
                     symbols = NULL,

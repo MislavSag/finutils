@@ -9,11 +9,11 @@
 #'
 #' @return A cleaned and processed data.table with price and return information.
 #' @import data.table
-#' @import xts
 #' @importFrom stats na.omit
 #' @importFrom data.table .N
 #' @import checkmate
 #' @import PerformanceAnalytics
+#' @importFrom xts as.xts
 #' @export
 portfolio_stats = function(returns,
                            market = NULL) {
