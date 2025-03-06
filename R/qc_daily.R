@@ -116,6 +116,7 @@ qc_daily = function(file_path,
   # Add day of month column
   if (add_day_of_month == TRUE) {
     setorder(prices, symbol, date)
+    prices[, month := yearmon(date)]
     month_date = unique(prices[, .(month, date)])
     setorder(month_date, date)
     month_date[, day_of_month := 1:.N, by = .(month)]
