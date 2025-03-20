@@ -28,7 +28,7 @@ dukascopy_quotes = function(dir_path,
   EX = SYMBOL = DT = OFRSIZ = BIDSIZ = NULL
 
   # Validate inputs using checkmate
-  assert_file_exists(dir_path, access = "r")
+  assert_directory_exists(dir_path, access = "r")
   assert_character(market, len = 1, any.missing = FALSE)
   assert_logical(clean, len = 1, any.missing = FALSE)
 

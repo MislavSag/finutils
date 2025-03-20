@@ -25,6 +25,10 @@ finam_ohlcv = function(dir_path, symbols, clean = FALSE) {
 
   EX = SYMBOL = DT = OFRSIZ = BIDSIZ = COND = CORR = NULL
 
+  # Validate inputs using checkmate
+  assert_directory_exists(dir_path, access = "r")
+  assert_logical(clean, len = 1, any.missing = FALSE)
+
   # Get files and symbols
   files_dir = list.files(dir_path, full.names = TRUE)
   symbols_ = basename(files_dir)
