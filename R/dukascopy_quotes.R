@@ -79,4 +79,5 @@ dukascopy_quotes = function(dir_path,
     q = rmOutliersQuotes(q)
     setorder(q, SYMBOL, DT)
   }
+  return(q)
 }
