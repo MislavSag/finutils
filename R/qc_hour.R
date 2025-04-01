@@ -33,7 +33,7 @@ qc_hour = function(file_path,
   # symbols = c("spy", "aapl", "msft")
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
-    returns = N = `.` = dollar_vol_rank = close_raw = day_of_month = NULL
+    returns = N = `.` = dollar_vol_rank = close_raw = day_of_month = date_ = NULL
 
   # Validate inputs using checkmate
   assert_file_exists(file_path, access = "r")
@@ -137,7 +137,8 @@ qc_hour = function(file_path,
 
   # Create rank by volume for every date
   if (add_dv_rank == TRUE) {
-    prices[, dollar_vol_rank := frankv(close_raw * volume, order = -1L), by = as.Date(date)]
+    prices[, dollar_vol_rank := frankv(close_raw * volume, order = -1L), by = .(date_ = as.Date(date))]
+    prices[, date_ := NULL]
   }
 
   # Add day of month column
