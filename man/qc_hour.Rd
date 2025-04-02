@@ -7,7 +7,6 @@
 qc_hour(
   file_path,
   symbols = NULL,
-  columns = c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close"),
   min_obs = 253,
   price_threshold = 1e-08,
   market_symbol = NULL,
@@ -18,8 +17,6 @@ qc_hour(
 \item{file_path}{Character. Path to the CSV file containing the price data.}
 
 \item{symbols}{Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.}
-
-\item{columns}{Character. Columns to include in the analysis. Default is c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close").}
 
 \item{min_obs}{Integer. Minimum number of observations required per symbol. Default is 253.}
 

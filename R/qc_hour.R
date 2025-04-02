@@ -5,7 +5,6 @@
 #'
 #' @param file_path Character. Path to the CSV file containing the price data.
 #' @param symbols Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.
-#' @param columns Character. Columns to include in the analysis. Default is c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close").
 #' @param min_obs Integer. Minimum number of observations required per symbol. Default is 253.
 #' @param price_threshold Numeric. Minimum allowed price for open, high, low, and close columns. Default is 1e-8.
 #' @param market_symbol Character. Symbol representing the market index (e.g., "spy").
@@ -24,7 +23,7 @@
 #' @export
 qc_hour = function(file_path,
                    symbols = NULL,
-                   columns = c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close"),
+                   # columns = c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close"),
                    min_obs = 253,
                    price_threshold = 1e-8,
                    market_symbol = NULL,
@@ -54,12 +53,12 @@ qc_hour = function(file_path,
     any.missing = FALSE
   )
   assert_logical(add_dv_rank, len = 1, any.missing = FALSE)
-  assert_subset(columns, choices = c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close"))
+  # assert_subset(columns, choices = c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close"))
 
   # Import data using arrow
   prices = open_dataset(file_path, format = "csv") |>
-    rename_with(~ gsub(" ", "_", tolower(.x))) |>
-    select(all_of(columns))
+    rename_with(~ gsub(" ", "_", tolower(.x)))
+    # select(all_of(columns))
   if (!is.null(symbols)) {
     prices = prices |>
       filter(symbol %in% symbols)
