@@ -5,6 +5,7 @@
 #'
 #' @param file_path Character. Path to the CSV file containing the price data.
 #' @param symbols Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.
+#' @param columns Character. Columns to include in the analysis. Default is c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close").
 #' @param min_obs Integer. Minimum number of observations required per symbol. Default is 253.
 #' @param price_threshold Numeric. Minimum allowed price for open, high, low, and close columns. Default is 1e-8.
 #' @param market_symbol Character. Symbol representing the market index (e.g., "spy").
@@ -16,11 +17,14 @@
 #' @importFrom stats na.omit
 #' @importFrom data.table .N
 #' @import checkmate
+#' @importFrom dplyr select filter collect rename_with all_of
+#' @importFrom arrow open_dataset
 #' @importFrom xts as.xts
 #' @importFrom lubridate force_tz
 #' @export
 qc_hour = function(file_path,
                    symbols = NULL,
+                   columns = c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close"),
                    min_obs = 253,
                    price_threshold = 1e-8,
                    market_symbol = NULL,
@@ -29,8 +33,10 @@ qc_hour = function(file_path,
   # library(data.table)
   # library(lubridate)
   # library(checkmate)
+  # library(arrow)
   # file_path = "F:/lean/data/stocks_hour.csv"
   # symbols = c("spy", "aapl", "msft")
+  # columns = c("symbol", "date", "close", "adj_close")
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
     returns = N = `.` = dollar_vol_rank = close_raw = day_of_month = date_ = NULL
@@ -47,10 +53,19 @@ qc_hour = function(file_path,
     len = 1,
     any.missing = FALSE
   )
+  assert_logical(add_dv_rank, len = 1, any.missing = FALSE)
+  assert_subset(columns, choices = c("symbol", "date", "open", "high", "low", "close", "volume", "adj_close"))
 
-  # Load data
-  prices = fread(file_path)
-  setnames(prices, gsub(" ", "_", tolower(colnames(prices))))
+  # Import data using arrow
+  prices = open_dataset(file_path, format = "csv") |>
+    rename_with(~ gsub(" ", "_", tolower(.x))) |>
+    select(all_of(columns))
+  if (!is.null(symbols)) {
+    prices = prices |>
+      filter(symbol %in% symbols)
+  }
+  prices = collect(prices)
+  setDT(prices)
 
   # Convert timezone
   prices[, date := force_tz(date, tzone = "America/New_York")]
@@ -58,13 +73,6 @@ qc_hour = function(file_path,
   # Set keys
   setkey(prices, "symbol")
   setorder(prices, symbol, date)
-
-  # Filter symbols
-  if (!is.null(symbols)) {
-    prices = prices[.(symbols), nomatch = NULL]
-    setkey(prices, "symbol")
-    setorder(prices, symbol, date)
-  }
 
   # Remove duplicates
   prices = unique(prices, by = c("symbol", "date"))
@@ -78,15 +86,15 @@ qc_hour = function(file_path,
     adj_close = data.table::last(adj_close),
     volume = sum(volume)
   ), by = .(symbol, date = as.Date(date))] |>
-  _[, .(symbol, n = .N), by = .(date,
-                                open,
-                                high,
-                                low,
-                                close,
-                                volume,
-                                adj_close,
-                                symbol_first = substr(symbol, 1, 1))] |>
-  _[n > 1]
+    _[, .(symbol, n = .N), by = .(date,
+                                  open,
+                                  high,
+                                  low,
+                                  close,
+                                  volume,
+                                  adj_close,
+                                  symbol_first = substr(symbol, 1, 1))] |>
+    _[n > 1]
   dups[, symbol_short := gsub("\\.\\d$", "", symbol)]
   symbols_remove = dups[, .(symbol, n = .N), by = .(date, open, high, low, close, volume, adj_close, symbol_short)]
   symbols_remove = symbols_remove[n >= 2, unique(symbol)]
@@ -137,8 +145,7 @@ qc_hour = function(file_path,
 
   # Create rank by volume for every date
   if (add_dv_rank == TRUE) {
-    prices[, dollar_vol_rank := frankv(close_raw * volume, order = -1L), by = .(date_ = as.Date(date))]
-    prices[, date_ := NULL]
+    prices[, dollar_vol_rank := frankv(close_raw * volume, order = -1L), by = as.Date(date)]
   }
 
   # Add day of month column
