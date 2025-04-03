@@ -8,6 +8,7 @@ qc_daily(
   file_path,
   symbols = NULL,
   min_obs = 253,
+  duplicates = c("slow", "fast", "none"),
   price_threshold = 1e-08,
   market_symbol = NULL,
   add_dv_rank = TRUE,
@@ -20,6 +21,8 @@ qc_daily(
 \item{symbols}{Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.}
 
 \item{min_obs}{Integer. Minimum number of observations required per symbol. Default is 253.}
+
+\item{duplicates}{Character. Method for handling duplicate symbols. Options are "slow", "fast", or "none". Default is "slow".}
 
 \item{price_threshold}{Numeric. Minimum allowed price for open, high, low, and close columns. Default is 1e-8.}
 
