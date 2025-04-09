@@ -7,14 +7,17 @@ Maintainer: Mislav Sagovac <mislav.sagovac@contentio.biz>
 Description: Utils functions I often use in my quant finance analysis.
 License: GPL-3
 Imports:
-  data.table,
-  checkmate,
-  xts,
-  PerformanceAnalytics,
-  highfrequency,
-  lubridate,
-  arrow,
-  dplyr
+    data.table,
+    checkmate,
+    xts,
+    PerformanceAnalytics,
+    highfrequency,
+    lubridate,
+    arrow,
+    dplyr,
+    Rcpp
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
+LinkingTo: 
+    Rcpp
