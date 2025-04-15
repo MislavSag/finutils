@@ -63,8 +63,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // wfo_combined
-List wfo_combined(DataFrame df, DataFrame params, int window, std::string window_type);
-RcppExport SEXP _finutils_wfo_combined(SEXP dfSEXP, SEXP paramsSEXP, SEXP windowSEXP, SEXP window_typeSEXP) {
+List wfo_combined(DataFrame df, DataFrame params, int window, std::string window_type, bool sell_below);
+RcppExport SEXP _finutils_wfo_combined(SEXP dfSEXP, SEXP paramsSEXP, SEXP windowSEXP, SEXP window_typeSEXP, SEXP sell_belowSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -72,7 +72,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< DataFrame >::type params(paramsSEXP);
     Rcpp::traits::input_parameter< int >::type window(windowSEXP);
     Rcpp::traits::input_parameter< std::string >::type window_type(window_typeSEXP);
-    rcpp_result_gen = Rcpp::wrap(wfo_combined(df, params, window, window_type));
+    Rcpp::traits::input_parameter< bool >::type sell_below(sell_belowSEXP);
+    rcpp_result_gen = Rcpp::wrap(wfo_combined(df, params, window, window_type, sell_below));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -82,7 +83,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_finutils_opt_threshold", (DL_FUNC) &_finutils_opt_threshold, 3},
     {"_finutils_calculate_sma", (DL_FUNC) &_finutils_calculate_sma, 2},
     {"_finutils_opt_with_sma_threshold", (DL_FUNC) &_finutils_opt_with_sma_threshold, 3},
-    {"_finutils_wfo_combined", (DL_FUNC) &_finutils_wfo_combined, 4},
+    {"_finutils_wfo_combined", (DL_FUNC) &_finutils_wfo_combined, 5},
     {NULL, NULL, 0}
 };
 

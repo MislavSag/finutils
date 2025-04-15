@@ -155,13 +155,15 @@ NumericVector opt_with_sma_threshold(DataFrame df, DataFrame params, bool sell_b
 //' @param params DataFrame with parameters; expected to include columns "variable", "thresholds", and "sma_n".
 //' @param window Integer specifying the window size (number of rows) to use for each optimization slice.
 //' @param window_type A string to determine the window slicing method; either "rolling" (default) or "expanding".
+//' @param sell_below Logical flag; if TRUE, sells when the SMA-filtered indicator is below the threshold.
 //' @return A list of DataFrames, each with a time stamp and the corresponding backtest results for that window.
 //' @export
 // [[Rcpp::export]]
 List wfo_combined(DataFrame df,
                    DataFrame params,
                    int window,
-                   std::string window_type = "rolling") {
+                   std::string window_type = "rolling",
+                   bool sell_below = true) {
    int n = df.nrow();
    NumericVector time = df["time"];
 
@@ -187,7 +189,7 @@ List wfo_combined(DataFrame df,
      }
 
      NumericVector sr;
-     sr = opt_with_sma_threshold(df_window, params);
+     sr = opt_with_sma_threshold(df_window, params, sell_below);
      int time_index = i + window - 1;
      results[i] = bind_scalar_and_vector_to_df(time[time_index], sr);
    }

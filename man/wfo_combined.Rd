@@ -4,7 +4,7 @@
 \alias{wfo_combined}
 \title{Combined Windowed Optimization with SMA Filtering}
 \usage{
-wfo_combined(df, params, window, window_type = "rolling")
+wfo_combined(df, params, window, window_type = "rolling", sell_below = TRUE)
 }
 \arguments{
 \item{df}{DataFrame containing the data. Must include a `time` column and a `returns` column.}
@@ -14,6 +14,8 @@ wfo_combined(df, params, window, window_type = "rolling")
 \item{window}{Integer specifying the window size (number of rows) to use for each optimization slice.}
 
 \item{window_type}{A string to determine the window slicing method; either "rolling" (default) or "expanding".}
+
+\item{sell_below}{Logical flag; if TRUE, sells when the SMA-filtered indicator is below the threshold.}
 }
 \value{
 A list of DataFrames, each with a time stamp and the corresponding backtest results for that window.

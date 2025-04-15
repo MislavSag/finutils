@@ -69,9 +69,10 @@ opt_with_sma_threshold <- function(df, params, sell_below = TRUE) {
 #' @param params DataFrame with parameters; expected to include columns "variable", "thresholds", and "sma_n".
 #' @param window Integer specifying the window size (number of rows) to use for each optimization slice.
 #' @param window_type A string to determine the window slicing method; either "rolling" (default) or "expanding".
+#' @param sell_below Logical flag; if TRUE, sells when the SMA-filtered indicator is below the threshold.
 #' @return A list of DataFrames, each with a time stamp and the corresponding backtest results for that window.
 #' @export
-wfo_combined <- function(df, params, window, window_type = "rolling") {
-    .Call('_finutils_wfo_combined', PACKAGE = 'finutils', df, params, window, window_type)
+wfo_combined <- function(df, params, window, window_type = "rolling", sell_below = TRUE) {
+    .Call('_finutils_wfo_combined', PACKAGE = 'finutils', df, params, window, window_type, sell_below)
 }
 
