@@ -7,6 +7,7 @@
 #' @param symbols Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.
 #' @param first_date Date. The first date to include in the analysis. Default is NULL, which means all dates are included.
 #' @param min_obs Integer. Minimum number of observations required per symbol. Default is 253.
+#' @param duplicates Character. Method for handling duplicate symbols. Options are "slow", "fast", or "none". Default is "slow".
 #' @param price_threshold Numeric. Minimum allowed price for open, high, low, and close columns. Default is 1e-8.
 #' @param market_symbol Character. Symbol representing the market index (e.g., "spy").
 #'  Default is NULL, which means you don't want to use add market data.
@@ -26,6 +27,7 @@ qc_hour = function(file_path,
                    symbols = NULL,
                    first_date = NULL,
                    min_obs = 253,
+                   duplicates = c("slow", "fast", "none"),
                    price_threshold = 1e-8,
                    market_symbol = NULL,
                    add_dv_rank = TRUE) {
@@ -82,27 +84,39 @@ qc_hour = function(file_path,
   prices = unique(prices, by = c("symbol", "date"))
 
   # Handle duplicate symbols (e.g., PHUN and PHUN.1)
-  dups = prices[, .(
-    open = data.table::first(open),
-    high = max(high),
-    low = min(low),
-    close = data.table::last(close),
-    adj_close = data.table::last(adj_close),
-    volume = sum(volume)
-  ), by = .(symbol, date = as.Date(date))] |>
-    _[, .(symbol, n = .N), by = .(date,
-                                  open,
-                                  high,
-                                  low,
-                                  close,
-                                  volume,
-                                  adj_close,
-                                  symbol_first = substr(symbol, 1, 1))] |>
-    _[n > 1]
-  dups[, symbol_short := gsub("\\.\\d$", "", symbol)]
-  symbols_remove = dups[, .(symbol, n = .N), by = .(date, open, high, low, close, volume, adj_close, symbol_short)]
-  symbols_remove = symbols_remove[n >= 2, unique(symbol)]
-  symbols_remove = symbols_remove[grepl("\\.", symbols_remove)]
+  duplicates = match.arg(duplicates)
+  if (duplicates == "fast") {
+    dups = prices[, .(symbol, n = .N),
+                  by = .(date, open, high, low, close, volume, adj_close, symbol_first = substr(symbol, 1, 1))]
+    dups = dups[n > 1]
+    dups[, symbol_short := gsub("\\.\\d$", "", symbol)]
+    symbols_remove = dups[, .(symbol, n = .N),
+                          by = .(date, open, high, low, close, volume, adj_close, symbol_short)]
+    symbols_remove = symbols_remove[n >= 2, unique(symbol)]
+    symbols_remove = symbols_remove[grepl("\\.", symbols_remove)]
+  } else if (duplicates == "slow") {
+    symbols_remove = c(
+      "acet.2", "adv.2", "altg.1", "anix.1", "arct.2", "asb.3", "atcx.1",
+      "bbcp.1", "beem.1", "bfi.2", "bki.2", "btdr.1", "btop.1", "capr.2",
+      "carr.1", "cbre.1", "cenn.1", "cgnt.1", "corz.1", "crdf.1", "cwen.a",
+      "cwen.a.1", "dbrg.1", "dkng.1", "drts.1", "eftr.1", "emdd.1", "eose.1",
+      "eqos.1", "escr.2", "eseb.1", "eshy.1", "esi.2", "eurz.2", "fbrx.1",
+      "fg.2", "flnt.1", "fnjn.1", "free.3", "frg.4", "fslf.1", "fstx.1",
+      "gci.1", "gla.2", "glcn.1", "glin.1", "goev.1", "gpt.1", "gpt.2",
+      "grmy.1", "gsd.2", "hffg.1", "hgen.1", "hsto.1", "hymc.1", "id.2",
+      "iova.1", "iqv.1", "ives.1", "j.1", "jnmf.1", "kcg.1", "lazr.2",
+      "lcii.1", "lmb.1", "lpro.1", "lrmr.1", "lsi.2", "lstza.1", "lstzb.1",
+      "math.2", "mdgl.1", "msgs.1", "nes.2", "nfh.1", "nmtr.1", "norw.1",
+      "on.1", "otis.1", "otlk.1", "phge.1", "phun.1", "pipr.1", "plcy.1",
+      "pme.3", "poly.2", "prg.4", "prmw.1", "pstv.2", "qlgn.1", "rbc.1",
+      "rcm.2", "rdog.1", "ren.1", "resp.2", "ride.2", "rosc.1", "rvph.1",
+      "ryce.1", "scu.3", "shyf.1", "siox.1", "sj.1", "spcb.1", "spgm.1",
+      "spru.1", "swbi.2", "tbio.3", "teum.1", "thtx.1", "timb.1", "tpco.1",
+      "tvtx.1", "usrt.1", "utz.1", "vate.1", "via.1", "vldr.1", "vln.1",
+      "vnt.2", "vrt.1", "wrap.1", "wtre.1", "xela.1", "xrdc.1", "xtnt.2")
+  } else {
+    symbols_remove = NULL
+  }
   if (length(symbols_remove) > 0) {
     prices = prices[!.(symbols_remove)]
   }
