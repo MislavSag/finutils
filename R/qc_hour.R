@@ -57,7 +57,7 @@ qc_hour = function(file_path,
     any.missing = FALSE
   )
   assert_logical(add_dv_rank, len = 1, any.missing = FALSE)
-  assert_date(first_date, any.missing = FALSE)
+  assert_date(first_date, any.missing = FALSE, null.ok = TRUE)
 
   # Import data using arrow
   prices = open_dataset(file_path, format = "csv") |>
