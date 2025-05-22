@@ -12,6 +12,8 @@
 #'  Default is NULL, which means you don't want to use add market data.
 #' @param add_dv_rank Logical. Whether to add a rank by dollar volume for every date. Default is TRUE.
 #' @param add_day_of_month Logical. Whether to add a day of month column. Default is FALSE.
+#' @param profiles_fmp Logical. Whether to add profiles data from FMP cloud. Default is FALSE.
+#' @param fmp_api_key Character. API key for FMP cloud. Required if `profiles_fmp` is TRUE.
 #'
 #' @return A cleaned and processed data.table with price and return information.
 #' @import data.table
@@ -19,28 +21,37 @@
 #' @importFrom data.table .N
 #' @import checkmate
 #' @importFrom xts as.xts
+#' @import httr
 #' @export
 qc_daily = function(file_path,
+                    profiles_fmp = FALSE,
                     symbols = NULL,
                     min_obs = 253,
                     duplicates = c("slow", "fast", "none"),
                     price_threshold = 1e-8,
                     market_symbol = NULL,
                     add_dv_rank = TRUE,
-                    add_day_of_month = FALSE) {
+                    add_day_of_month = FALSE,
+                    fmp_api_key = NULL
+                    ) {
 
   # Debug
   # library(data.table)
   # file_path = "F:/lean/data/stocks_daily.csv"
   # symbols = c("spy", "aapl", "msft")
+  # duplicates = "none"
+  # market_symbol = NULL
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
-    returns = N = `.` = dollar_vol_rank = close_raw = day_of_month = NULL
+    returns = N = `.` = dollar_vol_rank = close_raw = day_of_month =
+    currency = country = isin = exchange = industry = sector = ipoDate = isEtf =
+    isFund = fmp_symbol = NULL
 
   # Validate inputs using checkmate
   assert_file_exists(file_path, access = "r")
   assert_integerish(min_obs, lower = 1, len = 1, any.missing = FALSE)
   assert_numeric(price_threshold, lower = 0, len = 1, any.missing = FALSE)
+  assert_character(fmp_api_key, len = 1, any.missing = FALSE, null.ok = TRUE)
 
   # Load data
   prices = fread(file_path)
@@ -152,6 +163,29 @@ qc_daily = function(file_path,
     prices[, day_of_month := as.factor(day_of_month)]
     prices[day_of_month == 23, day_of_month := 22] # 23 day to 22 day
     prices[day_of_month == 22, day_of_month := 21] # not sure about this but lets fo with it
+  }
+
+  # Add profiles data from FMP cloud
+  if (profiles_fmp == TRUE) {
+    tmp_file = tempfile(fileext = ".csv")
+    profile = lapply(0:10, function(p) {
+      GET(
+        "https://financialmodelingprep.com/stable/profile-bulk",
+        query = list(part = p, apikey = fmp_api_key),
+        write_disk(tmp_file, overwrite = TRUE)
+      )
+      Sys.sleep(1L)
+      dt = fread(tmp_file)
+      if (nrow(dt) == 0) return(NULL)
+      dt
+    })
+    profile = rbindlist(profile, fill = TRUE)
+    profile = profile[!is.na(symbol)]
+    profile = profile[, .(symbol, currency, country, isin, exchange, industry,
+                          sector, ipoDate, isEtf, isFund)]
+    setnames(profile, "symbol", "fmp_symbol")
+    prices[, fmp_symbol := toupper(gsub("\\..*", "", symbol))]
+    prices = profile[prices, on = c("fmp_symbol")]
   }
 
   return(prices)

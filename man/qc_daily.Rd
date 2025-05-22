@@ -6,17 +6,21 @@
 \usage{
 qc_daily(
   file_path,
+  profiles_fmp = FALSE,
   symbols = NULL,
   min_obs = 253,
   duplicates = c("slow", "fast", "none"),
   price_threshold = 1e-08,
   market_symbol = NULL,
   add_dv_rank = TRUE,
-  add_day_of_month = FALSE
+  add_day_of_month = FALSE,
+  fmp_api_key = NULL
 )
 }
 \arguments{
 \item{file_path}{Character. Path to the CSV file containing the price data.}
+
+\item{profiles_fmp}{Logical. Whether to add profiles data from FMP cloud. Default is FALSE.}
 
 \item{symbols}{Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.}
 
@@ -32,6 +36,8 @@ Default is NULL, which means you don't want to use add market data.}
 \item{add_dv_rank}{Logical. Whether to add a rank by dollar volume for every date. Default is TRUE.}
 
 \item{add_day_of_month}{Logical. Whether to add a day of month column. Default is FALSE.}
+
+\item{fmp_api_key}{Character. API key for FMP cloud. Required if `profiles_fmp` is TRUE.}
 }
 \value{
 A cleaned and processed data.table with price and return information.

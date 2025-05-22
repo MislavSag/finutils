@@ -8,6 +8,7 @@ Description: Utils functions I often use in my quant finance analysis.
 License: GPL-3
 Imports:
     data.table,
+    httr,
     checkmate,
     xts,
     PerformanceAnalytics,

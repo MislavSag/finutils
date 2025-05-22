@@ -38,8 +38,9 @@ qc_hour = function(file_path,
   # library(arrow)
   # library(dplyr)
   # file_path = "F:/lean/data/stocks_hour.csv"
-  # symbols = c("spy", "aapl", "msft")
+  # symbols = c("spy", "aapl", "msft", "a", "efav")
   # first_date = Sys.Date() - 100
+  # first_date = NULL
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
     returns = N = `.` = dollar_vol_rank = close_raw = day_of_month = date_ = NULL
@@ -74,6 +75,7 @@ qc_hour = function(file_path,
   setDT(prices)
 
   # Convert timezone
+  prices[, date := with_tz(date, tzone = "UTC")]
   prices[, date := force_tz(date, tzone = "America/New_York")]
 
   # Set keys
