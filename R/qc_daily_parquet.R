@@ -1,4 +1,4 @@
-#' Process and Clean Quantconnect Price Data
+#' Process and Clean Quantconnect Parquet Price Data
 #'
 #' This function processes raw price data, adjusts for splits/dividends, calculates
 #' returns, and removes duplicates and invalid data points.
@@ -24,7 +24,7 @@
 #' @importFrom xts as.xts
 #' @import httr
 #' @export
-qc_daily = function(file_path,
+qc_daily_parquet = function(file_path,
                     market_cap_fmp_file = NULL,
                     profiles_fmp = FALSE,
                     symbols = NULL,
@@ -35,13 +35,14 @@ qc_daily = function(file_path,
                     add_dv_rank = TRUE,
                     add_day_of_month = FALSE,
                     fmp_api_key = NULL
-                    ) {
+) {
 
   # Debug
   # library(data.table)
   # library(arrow)
   # library(httr)
-  # file_path = "F:/lean/data/stocks_daily.csv"
+  # library(dplyr)
+  # file_path = "F:/lean/data/all_stocks_daily"
   # market_cap_fmp_file = "F:/data/equity/us/fundamentals/market_cap.parquet"
   # symbols = c("spy", "aapl", "msft")
   # duplicates = "none"
@@ -57,21 +58,21 @@ qc_daily = function(file_path,
   assert_integerish(min_obs, lower = 1, len = 1, any.missing = FALSE)
   assert_numeric(price_threshold, lower = 0, len = 1, any.missing = FALSE)
   assert_character(fmp_api_key, len = 1, any.missing = FALSE, null.ok = TRUE)
+  assert_logical(add_dv_rank, len = 1, any.missing = FALSE)
 
-  # Load data
-  prices = fread(file_path)
-  setnames(prices, gsub(" ", "_", tolower(colnames(prices))))
+  # Import data using arrow
+  prices = open_dataset(file_path) |>
+    rename_with(~ gsub(" ", "_", tolower(.x)))
+  if (!is.null(symbols)) {
+    prices = prices |>
+      filter(symbol %in% symbols)
+  }
+  prices = collect(prices)
+  setDT(prices)
 
   # Set keys
   setkey(prices, "symbol")
   setorder(prices, symbol, date)
-
-  # Filter symbols
-  if (!is.null(symbols)) {
-    prices = prices[.(symbols), nomatch = NULL]
-    setkey(prices, "symbol")
-    setorder(prices, symbol, date)
-  }
 
   # Remove duplicates
   prices = unique(prices, by = c("symbol", "date"))
