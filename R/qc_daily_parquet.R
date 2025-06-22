@@ -23,6 +23,7 @@
 #' @import checkmate
 #' @importFrom xts as.xts
 #' @import httr
+#' @import Rcpp
 #' @export
 qc_daily_parquet = function(file_path,
                     market_cap_fmp_file = NULL,
@@ -54,7 +55,7 @@ qc_daily_parquet = function(file_path,
     isFund = fmp_symbol = NULL
 
   # Validate inputs using checkmate
-  assert_file_exists(file_path, access = "r")
+  assert_directory_exists(file_path, access = "r")
   assert_integerish(min_obs, lower = 1, len = 1, any.missing = FALSE)
   assert_numeric(price_threshold, lower = 0, len = 1, any.missing = FALSE)
   assert_character(fmp_api_key, len = 1, any.missing = FALSE, null.ok = TRUE)
@@ -193,24 +194,6 @@ qc_daily_parquet = function(file_path,
     prices[, fmp_symbol := toupper(gsub("\\..*", "", symbol))]
     prices = profile[prices, on = c("fmp_symbol")]
   }
-
-  # Add shares outstanding
-  tmp_file = tempfile(fileext = ".csv")
-  shares = lapply(0:10, function(p) {
-    p = 2
-    dt = GET(
-      "https://financialmodelingprep.com/stable/shares-float-all",
-      query = list(page = p, apikey = fmp_api_key, limit = 5000)
-      # write_disk(tmp_file, overwrite = TRUE)
-    )
-    dt = content(dt)
-    dt = rbindlist(lapply(dt, as.data.table), fill = TRUE)
-    Sys.sleep(1L)
-    dt = fread(tmp_file)
-    if (nrow(dt) == 0) return(NULL)
-    dt
-  })
-
 
   # Add market cap data
   if (!is.null(market_cap_fmp_file)) {

@@ -193,22 +193,22 @@ qc_daily = function(file_path,
     prices = profile[prices, on = c("fmp_symbol")]
   }
 
-  # Add shares outstanding
-  tmp_file = tempfile(fileext = ".csv")
-  shares = lapply(0:10, function(p) {
-    p = 2
-    dt = GET(
-      "https://financialmodelingprep.com/stable/shares-float-all",
-      query = list(page = p, apikey = fmp_api_key, limit = 5000)
-      # write_disk(tmp_file, overwrite = TRUE)
-    )
-    dt = content(dt)
-    dt = rbindlist(lapply(dt, as.data.table), fill = TRUE)
-    Sys.sleep(1L)
-    dt = fread(tmp_file)
-    if (nrow(dt) == 0) return(NULL)
-    dt
-  })
+  # # Add shares outstanding
+  # tmp_file = tempfile(fileext = ".csv")
+  # shares = lapply(0:10, function(p) {
+  #   p = 2
+  #   dt = GET(
+  #     "https://financialmodelingprep.com/stable/shares-float-all",
+  #     query = list(page = p, apikey = fmp_api_key, limit = 5000)
+  #     # write_disk(tmp_file, overwrite = TRUE)
+  #   )
+  #   dt = content(dt)
+  #   dt = rbindlist(lapply(dt, as.data.table), fill = TRUE)
+  #   Sys.sleep(1L)
+  #   dt = fread(tmp_file)
+  #   if (nrow(dt) == 0) return(NULL)
+  #   dt
+  # })
 
 
   # Add market cap data
