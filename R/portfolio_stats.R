@@ -5,6 +5,7 @@
 #' maximum drawdown length, and beta.
 #'
 #' @param returns xts. A time series object with returns for each asset in the portfolio.
+#' @param scale Integer. Scale argument in PerformanceAnalytics functions.
 #' @param market xts. A time series object with returns for the market index.
 #'
 #' @return A cleaned and processed data.table with price and return information.
@@ -16,14 +17,13 @@
 #' @importFrom xts as.xts
 #' @export
 portfolio_stats = function(returns,
+                           scale = NA,
                            market = NULL) {
-
-  symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
-     N = `.` = dollar_vol_rank = close_raw = NULL
 
   # Debug
   # library(PerformanceAnalytics)
   # library(data.table)
+  # library(checkmate)
   # dt = finutils::qc_daily(
   #   file_path = "F:/lean/data/stocks_daily.csv",
   #   symbols = c("tlt", "spy")
@@ -34,10 +34,13 @@ portfolio_stats = function(returns,
   # returns = as.xts.data.table(returns)
   # market = returns[, "spy"]
 
+  # Checks
+  assert_class(returns, classes = c("xts"))
+
   # Performance analytics
   ret_cum = Return.cumulative(returns)
-  ret_ann = Return.annualized(returns)
-  sr      = SharpeRatio.annualized(returns)
+  ret_ann = Return.annualized(returns, scale = scale)
+  sr      = SharpeRatio.annualized(returns, scale = scale)
   asr     = AdjustedSharpeRatio(returns)
 
   # DDs

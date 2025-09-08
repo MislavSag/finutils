@@ -1,69 +1,68 @@
-#' Process and Clean Quantconnect Parquet Price Data
+#' Process and Clean Quantconnect Hour Price Data
 #'
-#' This function processes raw price data, adjusts for splits/dividends, calculates
+#' This function processes raw hour price data, adjusts for splits/dividends, calculates
 #' returns, and removes duplicates and invalid data points.
 #'
 #' @param file_path Character. Path to the CSV file containing the price data.
-#' @param market_cap_fmp_file Character. Path to the FMP cloud market cap file in Parquet format.
 #' @param etfs Character. Can be TRUE (only ETF's), FALSE (only non ETF's) or NULL (both). IMPORTANT. This is relevant only from 2009
 #' @param symbols Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.
+#' @param first_date Date. The first date to include in the analysis. Default is NULL, which means all dates are included.
 #' @param min_obs Integer. Minimum number of observations required per symbol. Default is 253.
 #' @param duplicates Character. Method for handling duplicate symbols. Options are "slow", "fast", or "none". Default is "slow".
 #' @param price_threshold Numeric. Minimum allowed price for open, high, low, and close columns. Default is 1e-8.
 #' @param market_symbol Character. Symbol representing the market index (e.g., "spy").
 #'  Default is NULL, which means you don't want to use add market data.
 #' @param add_dv_rank Logical. Whether to add a rank by dollar volume for every date. Default is TRUE.
-#' @param add_day_of_month Logical. Whether to add a day of month column. Default is FALSE.
-#' @param profiles_fmp Logical. Whether to add profiles data from FMP cloud. Default is FALSE.
-#' @param fmp_api_key Character. API key for FMP cloud. Required if `profiles_fmp` is TRUE.
 #'
 #' @return A cleaned and processed data.table with price and return information.
 #' @import data.table
 #' @importFrom stats na.omit
 #' @importFrom data.table .N
 #' @import checkmate
+#' @importFrom dplyr select filter collect rename_with all_of
+#' @importFrom arrow open_dataset
 #' @importFrom xts as.xts
-#' @import httr
-#' @import Rcpp
+#' @importFrom lubridate force_tz
 #' @export
-qc_daily_parquet = function(file_path,
-                    market_cap_fmp_file = NULL,
-                    etfs = NULL,
-                    profiles_fmp = FALSE,
-                    symbols = NULL,
-                    min_obs = 253,
-                    duplicates = c("slow", "fast", "none"),
-                    price_threshold = 1e-8,
-                    market_symbol = NULL,
-                    add_dv_rank = TRUE,
-                    add_day_of_month = FALSE,
-                    fmp_api_key = NULL
-) {
+qc_hour_parquet = function(file_path,
+                   etfs = NULL,
+                   symbols = NULL,
+                   first_date = NULL,
+                   min_obs = 253,
+                   duplicates = c("slow", "fast", "none"),
+                   price_threshold = 1e-8,
+                   market_symbol = NULL,
+                   add_dv_rank = TRUE) {
 
   # Debug
-  # library(data.table)
+  # library(lubridate)
+  # library(checkmate)
   # library(arrow)
-  # library(httr)
   # library(dplyr)
-  # file_path = "F:/lean/data/all_stocks_daily"
+  # library(data.table)
+  # file_path = "F:/lean/data/all_stocks_hour"
+  # symbols = c("aapl", "msft", "a", "efav")
+  # duplicates = "fast"
   # market_cap_fmp_file = "F:/data/equity/us/fundamentals/market_cap.parquet"
-  # symbols = c("amzn", "aapl", "msft", "tlt")
-  # duplicates = "none"
+  # first_date = Sys.Date() - 100
+  # first_date = NULL
   # market_symbol = "spy"
-  # etfs = FALSE
+  # etfs = NULL
+  # duplciates = "fast"
+  # price_threshold = 1e-8
+  # min_obs = 253
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
     returns = N = `.` = dollar_vol_rank = close_raw = day_of_month =
     currency = country = isin = exchange = industry = sector = ipoDate = isEtf =
-    isFund = fmp_symbol = qc_etf = etf = NULL
+    isFund = fmp_symbol = qc_etf = etf = date_ = NULL
 
   # Validate inputs using checkmate
   assert_directory_exists(file_path, access = "r")
   assert_integerish(min_obs, lower = 1, len = 1, any.missing = FALSE)
   assert_numeric(price_threshold, lower = 0, len = 1, any.missing = FALSE)
-  assert_character(fmp_api_key, len = 1, any.missing = FALSE, null.ok = TRUE)
   assert_logical(add_dv_rank, len = 1, any.missing = FALSE)
-  # if (is.null(etf_qc_path)) assert_directory_exists(etf_qc_path)
+  assert_date(first_date, any.missing = FALSE, null.ok = TRUE)
 
   # Import data using arrow
   prices = open_dataset(file_path) |>
@@ -71,6 +70,10 @@ qc_daily_parquet = function(file_path,
   if (!is.null(symbols)) {
     prices = prices |>
       filter(symbol %in% symbols)
+  }
+  if (!is.null(first_date)) {
+    prices = prices |>
+      filter(date >= first_date)
   }
   if (!is.null(etfs)) {
     if (etfs == FALSE) {
@@ -83,6 +86,10 @@ qc_daily_parquet = function(file_path,
   }
   prices = collect(prices)
   setDT(prices)
+
+  # Convert timezone
+  prices[, date := with_tz(date, tzone = "UTC")]
+  prices[, date := force_tz(date, tzone = "America/New_York")]
 
   # Set keys
   setkey(prices, "symbol")
@@ -139,12 +146,14 @@ qc_daily_parquet = function(file_path,
   setnames(prices, "close", "close_raw")
   setnames(prices, "adj_close", "close")
   prices[, adj_rate := NULL]
-  setcolorder(prices, c("symbol", "date", "open", "high", "low", "close", "volume"))
+  setcolorder(prices,
+              c("symbol", "date", "open", "high", "low", "close", "volume"))
 
   # Optionally remove rows with low prices
   if (!is.null(price_threshold)) {
     prices = prices[open > price_threshold & high > price_threshold &
-                      low > price_threshold & close > price_threshold]
+                      low > price_threshold &
+                      close > price_threshold]
   }
 
   # Calculate returns
@@ -155,12 +164,14 @@ qc_daily_parquet = function(file_path,
 
   # Set market returns
   if (!is.null(market_symbol)) {
-    market_ret = open_dataset(file_path) |>
+    market_ret = open_dataset(gsub("_spy", "", file_path)) |>
       rename_with(~ gsub(" ", "_", tolower(.x))) |>
       filter(symbol == market_symbol) |>
       select(date, adj_close) |>
       collect()
     setDT(market_ret)
+    market_ret[, date := with_tz(date, tzone = "UTC")]
+    market_ret[, date := force_tz(date, tzone = "America/New_York")]
     market_ret[, paste0(market_symbol, "_returns") := adj_close / shift(adj_close) - 1]
     market_ret[, adj_close := NULL]
     prices = market_ret[prices, on = "date"]
@@ -176,54 +187,21 @@ qc_daily_parquet = function(file_path,
 
   # Create rank by volume for every date
   if (add_dv_rank == TRUE) {
-    prices[, dollar_vol_rank := frankv(close_raw * volume, order = -1L), by = date]
+    prices[, dollar_vol_rank := frankv(close_raw * volume, order = -1L), by = as.Date(date)]
   }
 
   # Add day of month column
-  if (add_day_of_month == TRUE) {
-    setorder(prices, symbol, date)
-    prices[, month := yearmon(date)]
-    month_date = unique(prices[, .(month, date)])
-    setorder(month_date, date)
-    month_date[, day_of_month := 1:.N, by = .(month)]
-    prices = month_date[, .(date, day_of_month)][prices, on = c("date")]
-    prices[, day_of_month := as.factor(day_of_month)]
-    prices[day_of_month == 23, day_of_month := 22] # 23 day to 22 day
-    prices[day_of_month == 22, day_of_month := 21] # not sure about this but lets fo with it
-  }
-
-  # Add profiles data from FMP cloud
-  if (profiles_fmp == TRUE) {
-    tmp_file = tempfile(fileext = ".csv")
-    profile = lapply(0:10, function(p) {
-      GET(
-        "https://financialmodelingprep.com/stable/profile-bulk",
-        query = list(part = p, apikey = fmp_api_key),
-        write_disk(tmp_file, overwrite = TRUE)
-      )
-      Sys.sleep(1L)
-      dt = fread(tmp_file)
-      if (nrow(dt) == 0) return(NULL)
-      dt
-    })
-    profile = rbindlist(profile, fill = TRUE)
-    profile = profile[!is.na(symbol)]
-    profile = profile[, .(symbol, currency, country, isin, exchange, industry,
-                          sector, ipoDate, isEtf, isFund)]
-    setnames(profile, "symbol", "fmp_symbol")
-    prices[, fmp_symbol := toupper(gsub("\\..*", "", symbol))]
-    prices = profile[prices, on = c("fmp_symbol")]
-  }
-
-  # Add market cap data
-  if (!is.null(market_cap_fmp_file)) {
-    mcap = read_parquet(market_cap_fmp_file)
-    setnames(mcap, "symbol", "fmp_symbol")
-    prices[, fmp_symbol := toupper(gsub("\\..*", "", symbol))]
-    prices = mcap[prices, on = c("fmp_symbol", "date")]
-    setorder(prices, symbol, date)
-    setkey(prices, symbol)
-  }
+  # if (add_day_of_month == TRUE) {
+  #   setorder(prices, symbol, date)
+  #   prices[, month := yearmon(date)]
+  #   month_date = unique(prices[, .(month, date)])
+  #   setorder(month_date, date)
+  #   month_date[, day_of_month := 1:.N, by = .(month)]
+  #   prices = month_date[, .(date, day_of_month)][prices, on = c("date")]
+  #   prices[, day_of_month := as.factor(day_of_month)]
+  #   prices[day_of_month == 23, day_of_month := 22] # 23 day to 22 day
+  #   prices[day_of_month == 22, day_of_month := 21] # not sure about this but lets fo with it
+  # }
 
   return(prices)
 }

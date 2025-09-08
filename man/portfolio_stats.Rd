@@ -4,10 +4,12 @@
 \alias{portfolio_stats}
 \title{Portfolio Performance statistics}
 \usage{
-portfolio_stats(returns, market = NULL)
+portfolio_stats(returns, scale = NA, market = NULL)
 }
 \arguments{
 \item{returns}{xts. A time series object with returns for each asset in the portfolio.}
+
+\item{scale}{Integer. Scale argument in PerformanceAnalytics functions.}
 
 \item{market}{xts. A time series object with returns for the market index.}
 }
