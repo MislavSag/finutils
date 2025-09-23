@@ -5,7 +5,10 @@
 #'
 #' @param file_path Character. Path to the CSV file containing the price data.
 #' @param market_cap_fmp_file Character. Path to the FMP cloud market cap file in Parquet format.
-#' @param etfs Character. Can be TRUE (only ETF's), FALSE (only non ETF's) or NULL (both). IMPORTANT. This is relevant only from 2009
+#' @param etfs Character. Can be TRUE (only ETF's), FALSE (only non ETF's),
+#'     character (ETF constituents we want to follow) or NULL (all equities).
+#'     IMPORTANT. This is relevant only from date 2009-08.
+#' @param etf_cons Character vector of paths to QC etf universes. ETF constituents dummy variable.
 #' @param symbols Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.
 #' @param min_obs Integer. Minimum number of observations required per symbol. Default is 253.
 #' @param duplicates Character. Method for handling duplicate symbols. Options are "slow", "fast", or "none". Default is "slow".
@@ -29,6 +32,7 @@
 qc_daily_parquet = function(file_path,
                     market_cap_fmp_file = NULL,
                     etfs = NULL,
+                    etf_cons = NULL,
                     profiles_fmp = FALSE,
                     symbols = NULL,
                     min_obs = 253,
@@ -45,17 +49,25 @@ qc_daily_parquet = function(file_path,
   # library(arrow)
   # library(httr)
   # library(dplyr)
+  # library(checkmate)
   # file_path = "F:/lean/data/all_stocks_daily"
   # market_cap_fmp_file = "F:/data/equity/us/fundamentals/market_cap.parquet"
   # symbols = c("amzn", "aapl", "msft", "tlt")
-  # duplicates = "none"
+  # duplicates = "fast"
   # market_symbol = "spy"
   # etfs = FALSE
+  # etf_cons = c("F:/lean/data/equity/usa/universes/etf/iwm","F:/lean/data/equity/usa/universes/etf/spy")
+  # min_obs = 252
+  # add_dv_rank = FALSE
+  # add_day_of_month = FALSE
+  # market_symbol = "spy"
+  # profiles_fmp = TRUE
+  # fmp_api_key = Sys.getenv("APIKEY")
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
     returns = N = `.` = dollar_vol_rank = close_raw = day_of_month =
     currency = country = isin = exchange = industry = sector = ipoDate = isEtf =
-    isFund = fmp_symbol = qc_etf = etf = NULL
+    isFund = fmp_symbol = qc_etf = etf = keep = threshold = symbol_join = NULL
 
   # Validate inputs using checkmate
   assert_directory_exists(file_path, access = "r")
@@ -151,7 +163,7 @@ qc_daily_parquet = function(file_path,
   prices[, returns := close / shift(close, 1) - 1, by = symbol]
 
   # Remove missing values
-  prices = na.omit(prices)
+  prices = na.omit(prices, cols = c("symbol", "date", "close", "returns"))
 
   # Set market returns
   if (!is.null(market_symbol)) {
@@ -194,19 +206,45 @@ qc_daily_parquet = function(file_path,
 
   # Add profiles data from FMP cloud
   if (profiles_fmp == TRUE) {
-    tmp_file = tempfile(fileext = ".csv")
-    profile = lapply(0:10, function(p) {
-      GET(
-        "https://financialmodelingprep.com/stable/profile-bulk",
-        query = list(part = p, apikey = fmp_api_key),
-        write_disk(tmp_file, overwrite = TRUE)
-      )
-      Sys.sleep(1L)
-      dt = fread(tmp_file)
-      if (nrow(dt) == 0) return(NULL)
-      dt
-    })
-    profile = rbindlist(profile, fill = TRUE)
+    print("This is slow. alternative in the future should be to use profile data from server")
+    get_company_profile_bulk_all = function(start_part = 0L, max_parts = 4L, sleep_sec = 102) {
+      url = "https://financialmodelingprep.com/stable/profile-bulk"
+      res_list = vector("list", max_parts)
+      i = start_part
+      k = 1L
+
+      repeat {
+        if (i - start_part + 1L > max_parts) break
+        resp = RETRY(
+          "GET", url,
+          query = list(part = i, apikey = fmp_api_key),
+          httr::accept("text/csv"),
+          times = 2L,
+          pause_base = 201,
+          pauce_cap = 301,
+          pause_min = 201
+        )
+        cat("Step", i, "\n")
+        print(resp)
+        txt <- httr::content(resp, as = "text", encoding = "UTF-8")
+        if (!nzchar(trimws(txt))) break
+
+        dt = tryCatch(
+          data.table::fread(text = txt, showProgress = FALSE,
+                            na.strings = c("", "NA", "NaN", "null")),
+          error = function(e) data.table()
+        )
+        if (nrow(dt) == 0L) break
+
+        res_list[[k]] = dt
+        i = i + 1L
+        k = k + 1L
+        if (sleep_sec > 0) Sys.sleep(sleep_sec)
+      }
+
+      data.table::rbindlist(res_list[seq_len(k - 1L)], fill = TRUE)
+    }
+    profile = get_company_profile_bulk_all()
     profile = profile[!is.na(symbol)]
     profile = profile[, .(symbol, currency, country, isin, exchange, industry,
                           sector, ipoDate, isEtf, isFund)]
@@ -223,6 +261,39 @@ qc_daily_parquet = function(file_path,
     prices = mcap[prices, on = c("fmp_symbol", "date")]
     setorder(prices, symbol, date)
     setkey(prices, symbol)
+  }
+
+  # Add ETF constituents
+  if (!is.null(etf_cons)) {
+    print("Add ETF's")
+    etf_ = list.files(etf_cons, full.names = TRUE, recursive = TRUE)
+    etf_ = lapply(etf_, function(x) {
+      # x = etf_[1]
+      date_ = tools::file_path_sans_ext(basename(x))
+      bn  = basename(dirname(x))
+      x = fread(x, col.names = c("symbol", "id", "date", "weight", "mcap"), select = 1:5)
+      x[, date := as.character(date)]
+      x[is.na(date), date := date_]
+      x = unique(x, by = c("symbol", "date"))
+      x = x[date == max(date)]
+      x[, etf := bn]
+      return(x)
+    })
+    etf_ = rbindlist(etf_)
+    etf_[, date := as.Date(date, format = "%Y%m%d")]
+    etf_ = unique(etf_, by = c("etf", "symbol", "date"))
+    etf_mean = etf_[, .N, by = .(etf, date)] |>
+      _[, .(threshold = mean(N) * 0.85), by = etf]
+    etf_ = etf_[etf_mean, on = c("etf")]
+    etf_[, keep := .N > threshold, by = .(etf, date)]
+    etf_ = etf_[keep == TRUE]
+    etf_ = etf_[, .(etf, symbol = tolower(symbol), date, index = 1)]
+    etf_ = dcast(etf_, symbol + date ~ etf)
+    etf_[, symbol_join := symbol]
+    etf_[, symbol := NULL]
+    prices = prices |>
+      dplyr::mutate(symbol_join = gsub("\\..*", "", symbol)) |>
+      dplyr::left_join(etf_, by = dplyr::join_by(symbol_join, date))
   }
 
   return(prices)

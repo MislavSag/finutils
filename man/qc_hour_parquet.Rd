@@ -19,7 +19,9 @@ qc_hour_parquet(
 \arguments{
 \item{file_path}{Character. Path to the CSV file containing the price data.}
 
-\item{etfs}{Character. Can be TRUE (only ETF's), FALSE (only non ETF's) or NULL (both). IMPORTANT. This is relevant only from 2009}
+\item{etfs}{Character. Can be TRUE (only ETF's), FALSE (only non ETF's),
+character (ETF constituents we want to follow) or NULL (all equities).
+IMPORTANT. This is relevant only from date 2009-08.}
 
 \item{symbols}{Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.}
 

@@ -8,6 +8,7 @@ qc_daily_parquet(
   file_path,
   market_cap_fmp_file = NULL,
   etfs = NULL,
+  etf_cons = NULL,
   profiles_fmp = FALSE,
   symbols = NULL,
   min_obs = 253,
@@ -24,7 +25,11 @@ qc_daily_parquet(
 
 \item{market_cap_fmp_file}{Character. Path to the FMP cloud market cap file in Parquet format.}
 
-\item{etfs}{Character. Can be TRUE (only ETF's), FALSE (only non ETF's) or NULL (both). IMPORTANT. This is relevant only from 2009}
+\item{etfs}{Character. Can be TRUE (only ETF's), FALSE (only non ETF's),
+character (ETF constituents we want to follow) or NULL (all equities).
+IMPORTANT. This is relevant only from date 2009-08.}
+
+\item{etf_cons}{Character vector of paths to QC etf universes. ETF constituents dummy variable.}
 
 \item{profiles_fmp}{Logical. Whether to add profiles data from FMP cloud. Default is FALSE.}
 

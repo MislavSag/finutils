@@ -4,7 +4,9 @@
 #' returns, and removes duplicates and invalid data points.
 #'
 #' @param file_path Character. Path to the CSV file containing the price data.
-#' @param etfs Character. Can be TRUE (only ETF's), FALSE (only non ETF's) or NULL (both). IMPORTANT. This is relevant only from 2009
+#' @param etfs Character. Can be TRUE (only ETF's), FALSE (only non ETF's),
+#'     character (ETF constituents we want to follow) or NULL (all equities).
+#'     IMPORTANT. This is relevant only from date 2009-08.
 #' @param symbols Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.
 #' @param first_date Date. The first date to include in the analysis. Default is NULL, which means all dates are included.
 #' @param min_obs Integer. Minimum number of observations required per symbol. Default is 253.
