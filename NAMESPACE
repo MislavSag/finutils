@@ -2,6 +2,7 @@
 
 export(backtest_threshold)
 export(calculate_sma)
+export(coarse)
 export(dukascopy_quotes)
 export(finam_ohlcv)
 export(opt_threshold)
