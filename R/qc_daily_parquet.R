@@ -17,8 +17,7 @@
 #'  Default is NULL, which means you don't want to use add market data.
 #' @param add_dv_rank Logical. Whether to add a rank by dollar volume for every date. Default is TRUE.
 #' @param add_day_of_month Logical. Whether to add a day of month column. Default is FALSE.
-#' @param profiles_fmp Logical. Whether to add profiles data from FMP cloud. Default is FALSE.
-#' @param fmp_api_key Character. API key for FMP cloud. Required if `profiles_fmp` is TRUE.
+#' @param profiles_fmp_file Logical. Whether to add profiles data from FMP cloud. Default is FALSE.
 #'
 #' @return A cleaned and processed data.table with price and return information.
 #' @import data.table
@@ -29,19 +28,20 @@
 #' @import httr
 #' @import Rcpp
 #' @export
-qc_daily_parquet = function(file_path,
-                    market_cap_fmp_file = NULL,
-                    etfs = NULL,
-                    etf_cons = NULL,
-                    profiles_fmp = FALSE,
-                    symbols = NULL,
-                    min_obs = 253,
-                    duplicates = c("slow", "fast", "none"),
-                    price_threshold = 1e-8,
-                    market_symbol = NULL,
-                    add_dv_rank = TRUE,
-                    add_day_of_month = FALSE,
-                    fmp_api_key = NULL
+qc_daily_parquet = function(
+    file_path,
+    market_cap_fmp_file = NULL,
+    etfs = NULL,
+    etf_cons = NULL,
+    profiles_fmp = FALSE,
+    symbols = NULL,
+    min_obs = 253,
+    duplicates = c("slow", "fast", "none"),
+    price_threshold = 1e-8,
+    market_symbol = NULL,
+    add_dv_rank = TRUE,
+    add_day_of_month = FALSE,
+    profiles_fmp_file = NULL
 ) {
 
   # Debug
@@ -51,7 +51,7 @@ qc_daily_parquet = function(file_path,
   # library(dplyr)
   # library(checkmate)
   # file_path = "C:/Users/Mislav/qc_snp/data/all_stocks_daily"
-  # market_cap_fmp_file = "C:/Users/Mislav/qc_snp/data/equity/us/fundamentals/market_cap.parquet"
+  # market_cap_fmp_file = "F:/data/equity/us/fundamentals/market_cap.parquet"
   # symbols = c("amzn", "aapl", "msft", "tlt")
   # duplicates = "fast"
   # market_symbol = "spy"
@@ -63,19 +63,22 @@ qc_daily_parquet = function(file_path,
   # market_symbol = "spy"
   # profiles_fmp = TRUE
   # fmp_api_key = Sys.getenv("APIKEY")
+  # profiles_fmp_file = "F:/data/equity/us/fundamentals/prfiles.parquet"
+  # price_threshold = 1e-8
 
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
     returns = N = `.` = dollar_vol_rank = close_raw = day_of_month =
     currency = country = isin = exchange = industry = sector = ipoDate = isEtf =
     isFund = fmp_symbol = qc_etf = etf = keep = threshold = symbol_join =
-    inv_vehicle = NULL
+    inv_vehicle = companyName = NULL
 
   # Validate inputs using checkmate
   assert_directory_exists(file_path, access = "r")
   assert_integerish(min_obs, lower = 1, len = 1, any.missing = FALSE)
   assert_numeric(price_threshold, lower = 0, len = 1, any.missing = FALSE)
-  assert_character(fmp_api_key, len = 1, any.missing = FALSE, null.ok = TRUE)
   assert_logical(add_dv_rank, len = 1, any.missing = FALSE)
+  if (!test_null(profiles_fmp_file)) assert_file(profiles_fmp_file)
+  if (!test_null(market_cap_fmp_file)) assert_file(market_cap_fmp_file)
   # if (is.null(etf_qc_path)) assert_directory_exists(etf_qc_path)
 
   # Import data using arrow
@@ -207,48 +210,10 @@ qc_daily_parquet = function(file_path,
 
   # Add profiles data from FMP cloud
   if (profiles_fmp == TRUE) {
-    print("This is slow. alternative in the future should be to use profile data from server")
-    get_company_profile_bulk_all = function(start_part = 0L, max_parts = 4L, sleep_sec = 102) {
-      url = "https://financialmodelingprep.com/stable/profile-bulk"
-      res_list = vector("list", max_parts)
-      i = start_part
-      k = 1L
-
-      repeat {
-        if (i - start_part + 1L > max_parts) break
-        resp = RETRY(
-          "GET", url,
-          query = list(part = i, apikey = fmp_api_key),
-          httr::accept("text/csv"),
-          times = 2L,
-          pause_base = 201,
-          pauce_cap = 301,
-          pause_min = 201
-        )
-        cat("Step", i, "\n")
-        print(resp)
-        txt <- httr::content(resp, as = "text", encoding = "UTF-8")
-        if (!nzchar(trimws(txt))) break
-
-        dt = tryCatch(
-          data.table::fread(text = txt, showProgress = FALSE,
-                            na.strings = c("", "NA", "NaN", "null")),
-          error = function(e) data.table()
-        )
-        if (nrow(dt) == 0L) break
-
-        res_list[[k]] = dt
-        i = i + 1L
-        k = k + 1L
-        if (sleep_sec > 0) Sys.sleep(sleep_sec)
-      }
-
-      data.table::rbindlist(res_list[seq_len(k - 1L)], fill = TRUE)
-    }
-    profile = get_company_profile_bulk_all()
+    profile = read_parquet(profiles_fmp_file)
     profile = profile[!is.na(symbol)]
     profile = profile[, .(symbol, currency, country, isin, exchange, industry,
-                          sector, ipoDate, isEtf, isFund)]
+                          sector, ipoDate, isEtf, isFund, companyName)]
     setnames(profile, "symbol", "fmp_symbol")
     prices[, fmp_symbol := toupper(gsub("\\..*", "", symbol))]
     prices = profile[prices, on = c("fmp_symbol")]

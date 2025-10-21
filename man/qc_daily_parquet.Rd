@@ -17,7 +17,7 @@ qc_daily_parquet(
   market_symbol = NULL,
   add_dv_rank = TRUE,
   add_day_of_month = FALSE,
-  fmp_api_key = NULL
+  profiles_fmp_file = NULL
 )
 }
 \arguments{
@@ -30,8 +30,6 @@ character (ETF constituents we want to follow) or NULL (all equities).
 IMPORTANT. This is relevant only from date 2009-08.}
 
 \item{etf_cons}{Character vector of paths to QC etf universes. ETF constituents dummy variable.}
-
-\item{profiles_fmp}{Logical. Whether to add profiles data from FMP cloud. Default is FALSE.}
 
 \item{symbols}{Character. Symbols to include in the analysis. Default is NULL, which means all symbols are included.}
 
@@ -48,7 +46,7 @@ Default is NULL, which means you don't want to use add market data.}
 
 \item{add_day_of_month}{Logical. Whether to add a day of month column. Default is FALSE.}
 
-\item{fmp_api_key}{Character. API key for FMP cloud. Required if `profiles_fmp` is TRUE.}
+\item{profiles_fmp_file}{Logical. Whether to add profiles data from FMP cloud. Default is FALSE.}
 }
 \value{
 A cleaned and processed data.table with price and return information.
