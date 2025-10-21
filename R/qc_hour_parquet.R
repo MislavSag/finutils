@@ -57,7 +57,7 @@ qc_hour_parquet = function(file_path,
   symbol = high = low = volume = adj_close = n = symbol_short = adj_rate =
     returns = N = `.` = dollar_vol_rank = close_raw = day_of_month =
     currency = country = isin = exchange = industry = sector = ipoDate = isEtf =
-    isFund = fmp_symbol = qc_etf = etf = date_ = NULL
+    isFund = fmp_symbol = qc_etf = etf = date_ = inv_vehicle = NULL
 
   # Validate inputs using checkmate
   assert_directory_exists(file_path, access = "r")
