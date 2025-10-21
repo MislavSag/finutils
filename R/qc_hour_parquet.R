@@ -80,10 +80,10 @@ qc_hour_parquet = function(file_path,
   if (!is.null(etfs)) {
     if (etfs == FALSE) {
       prices = prices |>
-        filter(etf == FALSE)
+        filter(inv_vehicle == FALSE)
     } else if (etfs == TRUE ) {
       prices = prices |>
-        filter(etf == TRUE)
+        filter(inv_vehicle == TRUE)
     }
   }
   prices = collect(prices)

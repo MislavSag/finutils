@@ -50,13 +50,13 @@ qc_daily_parquet = function(file_path,
   # library(httr)
   # library(dplyr)
   # library(checkmate)
-  # file_path = "F:/lean/data/all_stocks_daily"
-  # market_cap_fmp_file = "F:/data/equity/us/fundamentals/market_cap.parquet"
+  # file_path = "C:/Users/Mislav/qc_snp/data/all_stocks_daily"
+  # market_cap_fmp_file = "C:/Users/Mislav/qc_snp/data/equity/us/fundamentals/market_cap.parquet"
   # symbols = c("amzn", "aapl", "msft", "tlt")
   # duplicates = "fast"
   # market_symbol = "spy"
   # etfs = FALSE
-  # etf_cons = c("F:/lean/data/equity/usa/universes/etf/iwm","F:/lean/data/equity/usa/universes/etf/spy")
+  # etf_cons = c("C:/Users/Mislav/qc_snp/data/equity/usa/universes/etf/iwm","C:/Users/Mislav/qc_snp/data/equity/usa/universes/etf/spy")
   # min_obs = 252
   # add_dv_rank = FALSE
   # add_day_of_month = FALSE
@@ -87,10 +87,10 @@ qc_daily_parquet = function(file_path,
   if (!is.null(etfs)) {
     if (etfs == FALSE) {
       prices = prices |>
-        filter(etf == FALSE)
+        filter(inv_vehicle == FALSE)
     } else if (etfs == TRUE ) {
       prices = prices |>
-        filter(etf == TRUE)
+        filter(inv_vehicle == TRUE)
     }
   }
   prices = collect(prices)
