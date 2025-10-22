@@ -209,7 +209,7 @@ qc_daily_parquet = function(
   }
 
   # Add profiles data from FMP cloud
-  if (profiles_fmp == TRUE) {
+  if (!is.null(profiles_fmp)) {
     profile = read_parquet(profiles_fmp_file)
     profile = profile[!is.na(symbol)]
     profile = profile[, .(symbol, currency, country, isin, exchange, industry,
