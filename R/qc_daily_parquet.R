@@ -33,7 +33,6 @@ qc_daily_parquet = function(
     market_cap_fmp_file = NULL,
     etfs = NULL,
     etf_cons = NULL,
-    profiles_fmp = FALSE,
     symbols = NULL,
     min_obs = 253,
     duplicates = c("slow", "fast", "none"),
@@ -70,7 +69,7 @@ qc_daily_parquet = function(
     returns = N = `.` = dollar_vol_rank = close_raw = day_of_month =
     currency = country = isin = exchange = industry = sector = ipoDate = isEtf =
     isFund = fmp_symbol = qc_etf = etf = keep = threshold = symbol_join =
-    inv_vehicle = companyName = NULL
+    inv_vehicle = companyName = `.` = NULL
 
   # Validate inputs using checkmate
   assert_directory_exists(file_path, access = "r")
@@ -209,7 +208,7 @@ qc_daily_parquet = function(
   }
 
   # Add profiles data from FMP cloud
-  if (!is.null(profiles_fmp)) {
+  if (!is.null(profiles_fmp_file)) {
     profile = read_parquet(profiles_fmp_file)
     profile = profile[!is.na(symbol)]
     profile = profile[, .(symbol, currency, country, isin, exchange, industry,

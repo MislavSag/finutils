@@ -9,7 +9,6 @@ qc_daily_parquet(
   market_cap_fmp_file = NULL,
   etfs = NULL,
   etf_cons = NULL,
-  profiles_fmp = FALSE,
   symbols = NULL,
   min_obs = 253,
   duplicates = c("slow", "fast", "none"),
