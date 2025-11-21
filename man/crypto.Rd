@@ -7,6 +7,7 @@
 crypto(
   path_market_cap,
   path_prices,
+  first_date = as.Date("2018-08-05"),
   snapshot_hour = 0,
   n = 10,
   min_constituents = 10
@@ -16,6 +17,8 @@ crypto(
 \item{path_market_cap}{Character. Path to market cap data.}
 
 \item{path_prices}{Character. Path to prices data.}
+
+\item{first_date}{Date. First date to look at.}
 
 \item{snapshot_hour}{Numeric. Hours to keep from hour data.}
 
