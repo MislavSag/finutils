@@ -31,11 +31,15 @@ crypto = function(
     log_returns = ewvol = N = log_return = `.` = NULL
   
   # Debug
+  # library(arrow)
+  # library(data.table)
+  # library(lubridate)
   # path_market_cap = "H:/strategies/cryptotemp/coincodex_marketcap.feather"
   # path_prices     = "H:/strategies/cryptotemp/binance_spot_1h.feather"
   # snapshot_hour = 0 # 0, 12 for example
-  # n = 10
-  # min_constituents = 10
+  # n = 100
+  # min_constituents = 200
+  # first_date = as.Date("2018-08-05")
 
   # Market Capitalization
   market_cap = read_feather(path_market_cap)
@@ -74,11 +78,12 @@ crypto = function(
 
   # remove from market_cap data anything that wasn't trading on Binance or is a stable/duplicate
   binance_tickers = dt[, unique(Ticker)]
-  mcap = mcap[Ticker %notin% c(stables, to_remove)] |>
+  mcap = market_cap[Ticker %notin% c(stables, to_remove)] |>
     _[Ticker %in% binance_tickers]
 
   # get first date where we have min_constituents
   start_date = dt[, .N, by = Date] |>
+    _[order(Date)] |>
     _[N >= min_constituents] |>
     _[, min(Date)]
   start_date = start_date + 1
@@ -112,6 +117,10 @@ crypto = function(
   universe[, log_return := log(Close / shift(Close)), by = Ticker]
   universe = na.omit(universe)
   universe[, ewvol := sqrt(365)*sqrt(ewma(log_return**2,lambda = lambda)), by = Ticker]
+
+  # library(ggplot2)
+  # ggplot(universe[, .N, by = Date], aes(Date, N)) + geom_line()
+  # ggplot(universe[is_index == TRUE][, .N, by = Date], aes(Date, N)) + geom_line()
 
   return(list(prices = prices, universe = universe))
 }
